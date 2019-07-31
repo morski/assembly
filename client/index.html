@@ -1,0 +1,224 @@
+<html>
+    <head>
+        <title>Assembly Image Viewer</title>
+        <link href="https://fonts.googleapis.com/css?family=Oswald&display=swap" rel="stylesheet">
+        <style>
+            body {
+                background-color: #000b19;
+            }
+            * {
+                margin: 0;
+                padding: 0;
+                border: 0;
+                font-size: 100%;
+                font: inherit;
+                vertical-align: baseline;
+                font-family: 'Oswald', sans-serif;
+                
+            }
+
+            .media-container {
+                width: 100%;
+                height: 100%;
+                background-color: black;
+                color: lime;
+            }
+
+            .media-container * {
+                width: 100%;
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            .userNameContainer {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .userName {
+                background-color: rgba(0,11,25,.7);
+                text-shadow: #000b19 0 0 15px;
+                font-size: 35px;
+                font-weight: 700;
+                width: 400px;
+                height: 200px;
+                border: 1px solid #266eff;
+                color: #266eff;
+                border-radius: 5px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-around;
+                align-items: center;
+                text-transform: uppercase;
+            }
+
+            .userName span {
+                font-style: italic;
+            }
+
+            .userName #nickName {
+                text-align: center;
+            }
+
+            .userName #joinButton {
+                border-top: #266eff 1px solid;
+                width: 100%;
+                text-align: center;
+                cursor: pointer;
+                font-size: 25px;
+                padding: 5px 0;
+            }
+            
+            .userName #joinButton:hover {
+                background: linear-gradient(rgba(38,110,255,.3),#000b19);
+            }
+
+            .hidden {
+                display: none;
+            }
+
+            @-webkit-keyframes rainbow {
+                0% {background: #ff0000;}
+                10% {background: #ff8000;}
+                20% {background: #ffff00;}
+                30% {background: #80ff00;}
+                40% {background: #00ff00;}
+                50% {background: #00ff80;}
+                60% {background: #00ffff;}
+                70% {background: #0080ff;}
+                80% {background: #0000ff;}
+                90% {background: #8000ff;}
+                100% {background: #ff0080;}
+            }
+            @-ms-keyframes rainbow {
+                0% {background: #ff0000;}
+                10% {background: #ff8000;}
+                20% {background: #ffff00;}
+                30% {background: #80ff00;}
+                40% {background: #00ff00;}
+                50% {background: #00ff80;}
+                60% {background: #00ffff;}
+                70% {background: #0080ff;}
+                80% {background: #0000ff;}
+                90% {background: #8000ff;}
+                100% {background: #ff0080;}
+            }
+            @-o-keyframes rainbow {
+                0% {background: #ff0000;}
+                10% {background: #ff8000;}
+                20% {background: #ffff00;}
+                30% {background: #80ff00;}
+                40% {background: #00ff00;}
+                50% {background: #00ff80;}
+                60% {background: #00ffff;}
+                70% {background: #0080ff;}
+                80% {background: #0000ff;}
+                90% {background: #8000ff;}
+                100% {background: #ff0080;}
+            }
+            @keyframes rainbow {
+                0% {background: #ff0000;}
+                10% {background: #ff8000;}
+                20% {background: #ffff00;}
+                30% {background: #80ff00;}
+                40% {background: #00ff00;}
+                50% {background: #00ff80;}
+                60% {background: #00ffff;}
+                70% {background: #0080ff;}
+                80% {background: #0000ff;}
+                90% {background: #8000ff;}
+                100% {background: #ff0080;}
+            }
+        </style>
+    </head>
+    <body>
+        <div class="userNameContainer">
+            <img width="400" src="https://images.ctfassets.net/1wvtj0omotu1/2q9TG6XFXaGBiSsVo80ORr/a21a58202256e57ba66d8d63108acc83/asm-two-row-white-s19.png">
+            <div class="userName">
+                    <span>Nickname</span>
+                    <input id="nickName" type="text">
+                    <div id="joinButton">JOIN</div>
+            </div>
+        </div>
+        
+        <div class="media-container hidden"></div>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+        <script>
+            $(function () {
+                String.prototype.splice = function(idx, rem, str) {
+                    return this.slice(0, idx) + str + this.slice(idx + Math.abs(rem));
+                };
+                var socket = io();
+                let userName = "";
+
+                $("#joinButton").click(() => {
+                    userName = $("#nickName").val();
+                    if (userName != "") {
+                        socket.emit('nickname', userName);
+                        $(".userNameContainer").addClass("hidden");
+                        $(".media-container").removeClass("hidden");
+                    }
+                });
+                
+                socket.on('mediaUpdate', (msg) => {
+                    $('.media-container').html(convertUrlToElement(msg.url, msg.mediaType));
+                });
+
+                socket.on('epilepsyMode', (begin) => {
+                    if (begin) {
+                        epilepsyMode();
+                    } else {
+                        stopEpilepsyMode();
+                    }
+                });
+
+                const convertUrlToElement = (url, mediaType) => {
+                    switch(mediaType){
+                        case 'image':
+                            return `<img src="${url}">`;
+                            break;
+                        case 'video':
+                            return `<video width="${$(window).width()}" autoplay loop><source src="${url}"></video>`;
+                            break;
+                        case 'youtube':
+                            const videoId = url.split('=')[1];
+                            return `<iframe width="${$(window).width()}" height="${$(window).height()}" src="https://www.youtube.com/embed/${videoId}?controls=0&versiion=3&loop=1&playlist=${videoId}&autoplay=1" frameborder="0"></iframe>`;
+                            break;
+                        default:
+                            return "";
+                            break;
+                    }
+                };
+
+                const epilepsyMode = () => {
+                    $('.media-container').html("");
+                    $('.media-container').css('animation', 'rainbow .5s infinite');
+                };
+
+                const stopEpilepsyMode = () => {
+                    $('.media-container').html("");
+                    $('.media-container').css('animation', '');
+                };
+            });
+        </script>
+    </body>
+</html>
+
+<!--
+
+body {
+-webkit-animation:rainbow .1s infinite;
+-ms-animation:rainbow .5s infinite;
+-o-animation:rainbow .5s infinite;
+animation:rainbow .5s infinite;
+}
+
+-->
