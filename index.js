@@ -18,7 +18,6 @@ app.get('/users', (req, res) => {
 });
 
 app.get('/presets', (req, res) => {
-    console.log("GET REQ!");
     fs.readFile("presets.json", function(err, buf) {
         res.send(JSON.parse(buf));
     });
@@ -30,18 +29,14 @@ const savePreset = (preset) => {
         presets.push(preset);
         fs.writeFile("presets.json", JSON.stringify(presets), (err) => {
             if (err) console.log(err);
-            console.log("Successfully Written to File.");
             io.emit('presets-updated');
           });
     });
 }
 
 io.on('connection', (socket) => {
-    console.log('a user connected');
-
     socket.on('disconnect', () => {
         connectedUsers = connectedUsers.filter((user) => user.id != socket.id);
-        console.log(`${socket.id} disconnected`);
         sendUpdatedUsers();
     });
 
@@ -51,7 +46,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('mediaUpdate', (msg) => {
-        console.log(msg);
         if (msg.id === 'all') {
             io.emit('mediaUpdate', msg)
             connectedUsers.forEach((user) => {
@@ -85,5 +79,5 @@ const sendUpdatedUsers = () => {
 }
 
 http.listen(1337, () => {
-    console.log('listening on *:1337');
+
 });
