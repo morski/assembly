@@ -4,6 +4,7 @@ $(function () {
     };
     var socket = io();
     let userName = "";
+    let uri = "";
 
     $("#joinButton").click(() => {
         userName = $("#nickName").val();
@@ -16,6 +17,10 @@ $(function () {
     
     socket.on('getUserName', () => {
         socket.emit('nickname', userName);
+    });
+
+    socket.on('getUrl', () => {
+        socket.emit('url', uri);
     });
 
     socket.on('mediaUpdate', (msg) => {
@@ -31,6 +36,7 @@ $(function () {
     });
 
     const convertUrlToElement = (url, mediaType) => {
+        uri = url;
         switch(mediaType){
             case 'image':
                 return `<img src="${url}">`;

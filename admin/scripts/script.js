@@ -171,11 +171,15 @@ const getRandomGifsForAllUsers = () => {
 var refreshRate = () => {
      // Reset set intervals
      
-     const duration = $("#gif-refresh-interval").val() * 1000;
+     let duration = $("#gif-refresh-interval").val();
+
+     if (!duration) {
+         duration = 30;
+     }
 
      clearInterval(refresh);
      refresh = setInterval(() => {
          // Call Giphy API for new gif
          getRandomGifsForAllUsers();
-     }, duration);
+     }, duration * 1000);
 };

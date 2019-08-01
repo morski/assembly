@@ -3,10 +3,11 @@ var express = require('express'),
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
 var fs = require("fs");
+const basicAuth = require('./middleware/auth');
 
 let connectedUsers = [];
 
-app.use("/admin", express.static(__dirname + "/admin"));
+app.use("/admin", [ basicAuth, express.static(__dirname + "/admin")]);
 app.use("/", express.static(__dirname + "/client"))
 
 app.get('/users', (req, res) => {
@@ -32,9 +33,9 @@ const savePreset = (preset) => {
 
 io.on('connection', (socket) => {
     socket.emit('getUserName');
+    socket.emit('getUrl');
     socket.on('disconnect', () => {
         connectedUsers = connectedUsers.filter((user) => user.id != socket.id);
-        console.log(connectedUsers);
         sendUpdatedUsers();
     });
 
@@ -47,7 +48,6 @@ io.on('connection', (socket) => {
         else {
             connectedUsers.push({name: nickname, id: socket.id, url: ""});
         }
-        console.log(connectedUsers);
         sendUpdatedUsers();
     });
 
@@ -64,6 +64,15 @@ io.on('connection', (socket) => {
                 connectedUsers[index].url = msg.url;
             }
             io.to(msg.id).emit('mediaUpdate', msg)
+        }
+    });
+
+    socket.on('url', (url) => {
+        if (!url) return; 
+        var user = connectedUsers.find(user => user.id === socket.id);
+        if (user) {
+            user.url = url;
+            sendUpdatedUsers();
         }
     });
 
@@ -85,6 +94,6 @@ const sendUpdatedUsers = () => {
 }
 
 http.listen(1337, () => {
-    console.log("Server started");
+    //console.log("Server started");
 });
 
