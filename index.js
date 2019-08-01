@@ -1,17 +1,13 @@
-var app = require('express')();
+var express = require('express'),
+    app = express();
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
 var fs = require("fs");
 
 let connectedUsers = [];
-let presets = [];
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/client/index.html');
-});
 
-app.get('/admin', (req, res) => {
-    res.sendFile(__dirname + '/admin/index.html');
-});
+app.use("/admin", express.static(__dirname + "/admin"));
+app.use("/", express.static(__dirname + "/client"))
 
 app.get('/users', (req, res) => {
     res.send(connectedUsers);
@@ -35,13 +31,23 @@ const savePreset = (preset) => {
 }
 
 io.on('connection', (socket) => {
+    socket.emit('getUserName');
     socket.on('disconnect', () => {
         connectedUsers = connectedUsers.filter((user) => user.id != socket.id);
+        console.log(connectedUsers);
         sendUpdatedUsers();
     });
 
     socket.on('nickname', (nickname) => {
-        connectedUsers.push({name: nickname, id: socket.id, url: ""});
+        if (!nickname) return; 
+        var user = connectedUsers.find(user => user.id === socket.id);
+        if (user) {
+            user.name = nickname;
+        }
+        else {
+            connectedUsers.push({name: nickname, id: socket.id, url: ""});
+        }
+        console.log(connectedUsers);
         sendUpdatedUsers();
     });
 
@@ -79,5 +85,6 @@ const sendUpdatedUsers = () => {
 }
 
 http.listen(1337, () => {
-
+    console.log("Server started");
 });
+
