@@ -212,6 +212,21 @@
                 background: linear-gradient(rgba(38,110,255,.3),#000b19);
             }
 
+            .space-between-row {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+            }
+
+            .save-preset input, .select-preset select {
+                font-size: 20px;
+                width: 100%;
+            }
+
+            .save-preset .button, .select-preset .button {
+                margin-left: 20px;
+            }
+
         </style>
     </head>
     <body>
@@ -226,6 +241,23 @@
         <div class="client-container">
             <div class="info">
                 <div class="date"></div>
+                <div class="category">Presets</div>
+            </div>
+            <div class="content">
+                <div class="save-preset space-between-row">
+                    <input id="preset-name" type="text">
+                    <div class="button" onclick="savePreset()">Save</div>
+                </div>
+                <div class="select-preset space-between-row top-divider">
+                    <select id="preset-selector"></select>
+                    <div class="button" onclick="loadPreset()">Load</div>
+                    <div class="button" onclick="getPresets()">Refresh</div>
+                </div>
+            </div>
+        </div>
+        <div class="client-container">
+            <div class="info">
+                <div class="date"></div>
                 <div class="category">All</div>
             </div>
             <div class="content">
@@ -233,6 +265,7 @@
                     <div class="button" onclick="blankScreens()">Blank</div>
                     <div class="button" onclick="startEpilepsy()">Start epilepsy</div>
                     <div class="button" onclick="stopEpilepsy()">Stop epilepsy</div>
+                    <div class="button" onclick="startGifs()">Random GIF</div>
                 </div>
                 <div class="media-update-container top-divider">
                     <div class="url-type-container">
@@ -265,6 +298,22 @@
         <script>
             var socket = null;
             let connectedUser = [];
+            let allPresets = [];
+
+            	var refresh;
+                // Duration count in seconds
+                const duration = 1000 * 10;
+
+            const giphy = {
+                baseURL: "https://api.giphy.com/v1/gifs/",
+                apiKey: "0UTRbFtkMxAplrohufYco5IY74U8hOes",
+                tag: "fail",
+                type: "random",
+                rating: "pg-13"
+            };
+
+            let giphyURL = encodeURI(`${giphy.baseURL}${giphy.type}?api_key=${giphy.apiKey}&tag=${giphy.tag}&rating=${giphy.rating}`);
+
             $(function () {
 
                 socket = io();
@@ -277,7 +326,14 @@
                     populateUsersToList(users);
                 });
 
+                socket.on('presets-updated', () => {
+                    alert("Preset saved");
+                    getPresets();
+                });
+
                 getConnectedUsers();
+
+                getPresets();
 
                 $(".refreshUsers").click(() => {
                     getConnectedUsers();
@@ -296,13 +352,33 @@
                 });
             };
 
+            const getPresets = () => {
+                $.get( "/presets", ( presets ) => {
+                    var options = $("#preset-selector");
+                    options.html("");
+                    presets.forEach((pre) => {
+                        options.append($("<option />").val(pre.name).text(pre.name));
+                    });
+                    allPresets = presets;
+                });
+            };
+
+            const loadPreset = () => {
+                const selectePrestName = $("#preset-selector").val();
+                const selectedPrest = allPresets.find(x => x.name === selectePrestName);
+                let index = 0;
+
+                document.querySelectorAll('.client-url').forEach((clEle) => {
+                    clEle.value = selectedPrest.urls[index];
+                    index++;
+                });
+            };
+
             const toggleConnectedUser = (id) => {
                 $(`#${id}Updater`).toggle(300);
             };
 
             const updateMedia = (id) => {
-                console.log(id);
-
                 const url = $(`input[name='${id}Url']`).val();
                 const mediaType = $(`input[name='${id}MediaType']:checked`).val();
                 socket.emit('mediaUpdate', {
@@ -330,7 +406,7 @@
                                                     <div class="media-update-container">
                                                         <div class="url-type-container">
                                                             <div class="media-url">
-                                                                <input name="${user.id}Url" type="text" value="${user.url}">
+                                                                <input id="${user.id}" class="client-url" name="${user.id}Url" type="text" value="${user.url}">
                                                             </div>
                                                             <div class="media-type">
                                                                 <div class="type">
@@ -359,6 +435,45 @@
 
             const stopEpilepsy = () => {
                 socket.emit('epilepsy', false);
+            };
+
+            const savePreset = () => {
+                const presetName = $("#preset-name").val();
+                var index = 0;
+                const urls = $('.client-url').map(function() {
+                    return $(this).val();
+                }).toArray();
+                socket.emit('save-preset', {name: presetName, urls});
+            };
+
+            const startGifs = () => {
+                getRandomGifsForAllUsers();
+                refreshRate();
+            };
+
+            const stopGifs = () => {
+                clearInterval(refresh);
+                blankScreens();
+            };
+
+            const getRandomGifsForAllUsers = () => {
+                $('.client-url').each((i, ele) => {
+                    $.getJSON(giphyURL, json => {
+                        console.log(ele.id);
+                        console.log(json.data.image_original_url);
+                        $(ele).val(json.data.image_original_url);
+                        updateMedia(ele.id);
+                    });
+                });
+            };
+
+            var refreshRate = () => {
+             	// Reset set intervals
+             	clearInterval(refresh);
+             	refresh = setInterval(() => {
+             		// Call Giphy API for new gif
+             		getRandomGifsForAllUsers();
+             	}, duration);
             };
         </script>
     </body>

@@ -1,9 +1,10 @@
 var app = require('express')();
-var http = require('https').createServer(app);
+var http = require('http').createServer(app);
 var io = require('socket.io')(http);
+var fs = require("fs");
 
 let connectedUsers = [];
-
+let presets = [];
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/client/index.html');
 });
@@ -16,7 +17,24 @@ app.get('/users', (req, res) => {
     res.send(connectedUsers);
 });
 
+app.get('/presets', (req, res) => {
+    console.log("GET REQ!");
+    fs.readFile("presets.json", function(err, buf) {
+        res.send(JSON.parse(buf));
+    });
+});
 
+const savePreset = (preset) => {
+    fs.readFile("presets.json", function(err, buf) {
+        const presets = JSON.parse(buf);
+        presets.push(preset);
+        fs.writeFile("presets.json", JSON.stringify(presets), (err) => {
+            if (err) console.log(err);
+            console.log("Successfully Written to File.");
+            io.emit('presets-updated');
+          });
+    });
+}
 
 io.on('connection', (socket) => {
     console.log('a user connected');
@@ -51,6 +69,14 @@ io.on('connection', (socket) => {
 
     socket.on('epilepsy', (begin) => {
         io.emit('epilepsyMode', begin);
+    });
+
+    socket.on('save-preset', (preset) => {
+        savePreset(preset);
+    });
+
+    socket.on('get-presets', () => {
+
     });
 });
 
